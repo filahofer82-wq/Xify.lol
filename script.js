@@ -22,7 +22,7 @@
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       isActive = false;
-      document.title = "nigga come back";
+      document.title = "come back";
     } else {
       isActive = true;
     }
