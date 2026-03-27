@@ -1,3 +1,34 @@
+// ═══ ANIMATED TAB TITLE ═══
+(() => {
+  const text = "Xify";
+  let index = 0;
+  let forward = true;
+  let isActive = true;
+
+  function animateTitle() {
+    if (!isActive) return;
+    if (forward) {
+      index++;
+      if (index === text.length) forward = false;
+    } else {
+      index--;
+      if (index === 1) forward = true;
+    }
+    document.title = text.slice(0, index);
+  }
+
+  setInterval(animateTitle, 300);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      isActive = false;
+      document.title = "nigga come back";
+    } else {
+      isActive = true;
+    }
+  });
+})();
+
 // ═══ NAME PARTICLES ═══
 (() => {
   const canvas = document.querySelector('.name-particles');
