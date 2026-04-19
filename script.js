@@ -317,6 +317,28 @@
   window.addEventListener('resize', () => { bounds = null; });
 })();
 
+// ═══ DISCORD PRESENCE (Lanyard) ═══
+// To enable: join discord.gg/lanyard then paste your Discord user ID below.
+(() => {
+  const DISCORD_USER_ID = '295478094263877644';
+  const dot = document.querySelector('.status-dot');
+  if (!dot || DISCORD_USER_ID === '295478094263877644') return;
+
+  async function fetchPresence() {
+    try {
+      const res  = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_USER_ID}`);
+      const data = await res.json();
+      if (data.success) {
+        const online = data.data.discord_status !== 'offline';
+        dot.classList.toggle('status-dot--online', online);
+      }
+    } catch {}
+  }
+
+  fetchPresence();
+  setInterval(fetchPresence, 30000);
+})();
+
 // ═══ DISCORD CLICK-TO-COPY ═══
 (() => {
   const discord = document.querySelector('.social-icon[aria-label="Discord"]');
@@ -370,3 +392,202 @@
   });
 })();
 
+// ═══ TERMINAL ═══
+(() => {
+  const toggleBtn = document.getElementById('term-toggle');
+  const win       = document.getElementById('term-window');
+  const body_     = document.getElementById('term-body');
+  const output    = document.getElementById('term-output');
+  const input     = document.getElementById('term-input');
+  const closeBtn  = document.getElementById('term-close');
+  if (!toggleBtn || !win) return;
+
+  let isOpen  = false;
+  let history = [];
+  let histIdx = -1;
+  let booted  = false;
+
+  /* ── helpers ── */
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function addLine(html, cls) {
+    const el = document.createElement('div');
+    el.className = 'term-line' + (cls ? ' ' + cls : '');
+    el.innerHTML = html;
+    output.appendChild(el);
+  }
+
+  function gap() {
+    const el = document.createElement('div');
+    el.className = 'term-line--gap';
+    output.appendChild(el);
+  }
+
+  function scrollBottom() {
+    body_.scrollTop = body_.scrollHeight;
+  }
+
+  /* ── boot message ── */
+  function boot() {
+    addLine('<span class="t-hi">Xify</span> <span class="t-dim">terminal v1.0.0</span>');
+    addLine('<span class="t-dim">type <span class="t-cmd">help</span> for available commands.</span>');
+    gap();
+    booted = true;
+    scrollBottom();
+  }
+
+  /* ── commands ── */
+  const COMMANDS = {
+    help() {
+      addLine('<span class="t-dim">commands:</span>');
+      addLine('  <span class="t-cmd">steam</span>    <span class="t-dim">—</span> open steam profile');
+      addLine('  <span class="t-cmd">discord</span>  <span class="t-dim">—</span> copy discord username');
+      addLine('  <span class="t-cmd">clear</span>    <span class="t-dim">—</span> clear terminal');
+      addLine('  <span class="t-cmd">help</span>     <span class="t-dim">—</span> show this message');
+    },
+    steam() {
+      window.open('https://steamcommunity.com/id/bot7k/', '_blank', 'noopener,noreferrer');
+      addLine('<span class="t-ok">↗</span> opening steam profile…');
+    },
+    discord() {
+      navigator.clipboard?.writeText('dejmilion').catch(() => {});
+      addLine('<span class="t-dim">username:</span> <span class="t-hi">dejmilion</span>');
+      addLine('<span class="t-ok">✓</span> <span class="t-dim">copied to clipboard</span>');
+    },
+    clear() {
+      output.innerHTML = '';
+    },
+  };
+
+  function runCmd(raw) {
+    const cmd = raw.trim().toLowerCase();
+    if (!cmd) return;
+
+    history.unshift(cmd);
+    histIdx = -1;
+
+    /* echo the typed command */
+    addLine('<span class="t-prompt">~/xify $</span>&nbsp;' + esc(cmd), 'term-line--echo');
+
+    if (COMMANDS[cmd]) {
+      COMMANDS[cmd]();
+    } else {
+      addLine('<span class="t-err">command not found:</span> ' + esc(cmd));
+      addLine('<span class="t-dim">try <span class="t-cmd">help</span></span>');
+    }
+    gap();
+    scrollBottom();
+  }
+
+  /* ── open / close ── */
+  function openTerm() {
+    isOpen = true;
+    win.classList.add('term-window--open');
+    toggleBtn.classList.add('term-toggle--active');
+    win.setAttribute('aria-hidden', 'false');
+    if (!booted) boot();
+    setTimeout(() => input.focus(), 40);
+  }
+
+  function closeTerm() {
+    isOpen = false;
+    win.classList.remove('term-window--open');
+    toggleBtn.classList.remove('term-toggle--active');
+    win.setAttribute('aria-hidden', 'true');
+  }
+
+  toggleBtn.addEventListener('click', () => isOpen ? closeTerm() : openTerm());
+  closeBtn.addEventListener('click', closeTerm);
+
+  /* ── drag ── */
+  const header = win.querySelector('.term-header');
+  let dragging = false, dragOffX = 0, dragOffY = 0;
+
+  header.addEventListener('mousedown', e => {
+    if (e.target === closeBtn || e.target.closest('.term-dots')) return;
+    dragging = true;
+    const r = win.getBoundingClientRect();
+    dragOffX = e.clientX - r.left;
+    dragOffY = e.clientY - r.top;
+    win.style.transition = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    let x = e.clientX - dragOffX;
+    let y = e.clientY - dragOffY;
+    const r = win.getBoundingClientRect();
+    x = Math.max(0, Math.min(x, window.innerWidth  - r.width));
+    y = Math.max(0, Math.min(y, window.innerHeight - r.height));
+    win.style.left   = x + 'px';
+    win.style.top    = y + 'px';
+    win.style.right  = 'auto';
+    win.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => { dragging = false; });
+
+  /* ── resize ── */
+  let resizing = false, resizeDir = '', resizeStart = {};
+
+  win.querySelectorAll('.term-resize').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      resizing = true;
+      resizeDir = handle.dataset.dir;
+      const r = win.getBoundingClientRect();
+      resizeStart = { x: e.clientX, y: e.clientY, left: r.left, top: r.top, width: r.width, height: r.height };
+      win.style.transition = 'none';
+      e.preventDefault();
+    });
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!resizing) return;
+    const dx = e.clientX - resizeStart.x;
+    const dy = e.clientY - resizeStart.y;
+    const MIN_W = 260, MIN_H = 160;
+    let { left, top, width, height } = resizeStart;
+
+    if (resizeDir.includes('e'))  width  = Math.max(MIN_W, width + dx);
+    if (resizeDir.includes('s'))  height = Math.max(MIN_H, height + dy);
+    if (resizeDir.includes('w')) { width  = Math.max(MIN_W, width - dx); if (width > MIN_W) left += dx; }
+    if (resizeDir.includes('n')) { height = Math.max(MIN_H, height - dy); if (height > MIN_H) top += dy; }
+
+    win.style.width  = width  + 'px';
+    win.style.height = height + 'px';
+    win.style.left   = left   + 'px';
+    win.style.top    = top    + 'px';
+    win.style.right  = 'auto';
+    win.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => { resizing = false; });
+
+  /* Click anywhere in the terminal body to refocus input */
+  body_.addEventListener('click', () => input.focus());
+
+  /* ── keyboard ── */
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = input.value;
+      input.value = '';
+      runCmd(val);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (histIdx < history.length - 1) {
+        histIdx++;
+        input.value = history[histIdx];
+      }
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (histIdx > 0) { histIdx--; input.value = history[histIdx]; }
+      else             { histIdx = -1; input.value = ''; }
+    }
+  });
+})();

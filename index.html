@@ -121,6 +121,40 @@
 
   </div>
 
+  <!-- ═══ Terminal toggle button ═══ -->
+  <button class="term-toggle" id="term-toggle" aria-label="Toggle terminal">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 17 10 11 4 5"></polyline>
+      <line x1="12" y1="19" x2="20" y2="19"></line>
+    </svg>
+  </button>
+
+  <!-- ═══ Floating terminal window ═══ -->
+  <div class="term-window" id="term-window" aria-hidden="true">
+    <div class="term-resize term-resize--e"  data-dir="e"></div>
+    <div class="term-resize term-resize--s"  data-dir="s"></div>
+    <div class="term-resize term-resize--w"  data-dir="w"></div>
+    <div class="term-resize term-resize--se" data-dir="se"></div>
+    <div class="term-resize term-resize--sw" data-dir="sw"></div>
+    <div class="term-resize term-resize--ne" data-dir="ne"></div>
+    <div class="term-resize term-resize--nw" data-dir="nw"></div>
+    <div class="term-header">
+      <div class="term-dots">
+        <span class="term-dot term-dot--close" id="term-close"></span>
+        <span class="term-dot term-dot--min"></span>
+        <span class="term-dot term-dot--max"></span>
+      </div>
+      <span class="term-title">xify — terminal</span>
+    </div>
+    <div class="term-body" id="term-body">
+      <div class="term-output" id="term-output"></div>
+      <div class="term-input-row">
+        <span class="term-prompt">~/xify $&nbsp;</span>
+        <input class="term-input" id="term-input" type="text" autocomplete="off" spellcheck="false" aria-label="terminal input">
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
