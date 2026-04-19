@@ -6,9 +6,9 @@
   <title>Xify</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Outfit:wght@300;400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Outfit:wght@300;400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=Caveat:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="is-intro">
 
   <!-- Blurred full-screen background -->
   <div class="bg">
@@ -21,6 +21,14 @@
 
   <!-- Noise -->
   <div class="noise"></div>
+
+  <!-- ═══ Intro hero — big hand-drawn Xify that flies to the header ═══ -->
+  <div class="intro-overlay" aria-hidden="true"></div>
+  <div class="intro-hero" aria-hidden="true">
+    <svg class="intro-hero-svg" viewBox="0 0 170 70" preserveAspectRatio="xMinYMid meet">
+      <text x="3" y="55" class="intro-hero-text"><tspan class="intro-hero-letter" style="--i:0">X</tspan><tspan class="intro-hero-letter" style="--i:1">i</tspan><tspan class="intro-hero-letter" style="--i:2">f</tspan><tspan class="intro-hero-letter" style="--i:3">y</tspan></text>
+    </svg>
+  </div>
 
   <!-- ═══ Main container ═══ -->
   <div class="container">
@@ -40,7 +48,11 @@
         <div class="name-row">
           <div class="username-wrap">
             <canvas class="name-particles" aria-hidden="true"></canvas>
-            <h1 class="username">Xify</h1>
+            <h1 class="username" aria-label="Xify">
+              <svg class="username-svg" viewBox="0 0 170 70" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
+                <text x="3" y="55" class="uname-svg-text">Xify</text>
+              </svg>
+            </h1>
           </div>
         </div>
         <p class="subtitle">Larp till you make it</p>
