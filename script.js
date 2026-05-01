@@ -76,6 +76,28 @@
 
   fontsReady.then(() => {
     centerHero();
+
+    // <tspan> elements don't support CSS transforms, so replace them with
+    // individual <text> elements measured at their original positions.
+    const origText = heroSvg.querySelector('text');
+    if (origText) {
+      const tspans = Array.from(origText.querySelectorAll('.intro-hero-letter'));
+      const extents = tspans.map((_, i) => {
+        try { return origText.getExtentOfChar(i); } catch(e) { return null; }
+      });
+      origText.remove();
+      tspans.forEach((tspan, i) => {
+        const ext = extents[i];
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.setAttribute('x', ext ? ext.x : String(3 + i * 30));
+        t.setAttribute('y', '55');
+        t.classList.add('intro-hero-text', 'intro-hero-letter');
+        t.style.setProperty('--i', tspan.style.getPropertyValue('--i') || String(i));
+        t.textContent = tspan.textContent;
+        heroSvg.appendChild(t);
+      });
+    }
+
     setTimeout(flyToHeader, WRITE_TIME + HOLD_AFTER_WRITE);
   });
 })();
@@ -444,6 +466,7 @@
       addLine('<span class="t-dim">commands:</span>');
       addLine('  <span class="t-cmd">steam</span>    <span class="t-dim">—</span> open steam profile');
       addLine('  <span class="t-cmd">discord</span>  <span class="t-dim">—</span> copy discord username');
+      addLine('  <span class="t-cmd">setup</span>    <span class="t-dim">—</span> show setup specs');
       addLine('  <span class="t-cmd">clear</span>    <span class="t-dim">—</span> clear terminal');
       addLine('  <span class="t-cmd">help</span>     <span class="t-dim">—</span> show this message');
     },
@@ -455,6 +478,16 @@
       navigator.clipboard?.writeText('dejmilion').catch(() => {});
       addLine('<span class="t-dim">username:</span> <span class="t-hi">dejmilion</span>');
       addLine('<span class="t-ok">✓</span> <span class="t-dim">copied to clipboard</span>');
+    },
+    setup() {
+      addLine('<span class="t-dim">peripherals:</span>');
+      addLine('  <span class="t-cmd">mouse</span>     <span class="t-hi">Wlmouse Beast X Mini</span>');
+      addLine('  <span class="t-cmd">keyboard</span>  <span class="t-hi">Mchose Jet 75</span>');
+      gap();
+      addLine('<span class="t-dim">pc:</span>');
+      addLine('  <span class="t-cmd">cpu</span>       <span class="t-hi">AMD Ryzen 5 4500</span>');
+      addLine('  <span class="t-cmd">gpu</span>       <span class="t-hi">NVIDIA RTX 3060 Ti</span>');
+      addLine('  <span class="t-cmd">ram</span>       <span class="t-hi">16GB</span>');
     },
     clear() {
       output.innerHTML = '';
