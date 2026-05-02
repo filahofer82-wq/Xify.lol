@@ -802,52 +802,11 @@ body.intro-done .intro-overlay {
 }
 
 /* ═══ TERMINAL ═══ */
-.term-toggle {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  z-index: 200;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 4px 20px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.term-toggle svg {
-  width: 18px;
-  height: 18px;
-}
-
-.term-toggle:hover {
-  background: rgba(255, 255, 255, 0.11);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.9);
-  transform: scale(1.07);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-    0 6px 24px rgba(0, 0, 0, 0.45);
-}
-
-.term-toggle--active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+.social-icon.term-toggle--active {
   color: rgba(255, 255, 255, 0.95);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-    0 0 22px rgba(180, 210, 255, 0.12),
-    0 4px 20px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.1);
 }
 
 .term-window {
