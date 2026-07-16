@@ -98,7 +98,14 @@
       });
     }
 
-    setTimeout(flyToHeader, WRITE_TIME + HOLD_AFTER_WRITE);
+    // Wait for the visitor to click "enter" before playing the intro,
+    // so the writing animation starts fresh when they arrive.
+    const begin = () => setTimeout(flyToHeader, WRITE_TIME + HOLD_AFTER_WRITE);
+    if (body.classList.contains('pre-enter')) {
+      document.addEventListener('xify:enter', begin, { once: true });
+    } else {
+      begin();
+    }
   });
 })();
 
@@ -414,213 +421,143 @@
   });
 })();
 
-// ═══ TERMINAL ═══
+// ═══ YOUTUBE CARD SWAP ═══
+// Hovering the YouTube icon swaps the Spotify card for an embedded video;
+// leaving it brings the Spotify card back. The card itself also keeps the
+// video open (with a small delay) so you can move into it and interact.
 (() => {
-  const toggleBtn = document.getElementById('term-toggle');
-  const win       = document.getElementById('term-window');
-  const body_     = document.getElementById('term-body');
-  const output    = document.getElementById('term-output');
-  const input     = document.getElementById('term-input');
-  const closeBtn  = document.getElementById('term-close');
-  if (!toggleBtn || !win) return;
+  const link      = document.getElementById('yt-social');
+  const container = document.querySelector('.container');
+  const cards     = document.querySelector('.cards');
+  const spotify   = document.querySelector('.spotify-card');
+  const card      = document.getElementById('yt-card');
+  const frame     = document.getElementById('yt-frame');
+  if (!link || !container || !cards || !spotify || !card || !frame) return;
 
-  let isOpen  = false;
-  let history = [];
-  let histIdx = -1;
-  let booted  = false;
+  const SRC = frame.dataset.src;
+  let hideTimer = null;
 
-  /* ── helpers ── */
-  function esc(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Measure the real heights of both cards so the swap never overlaps
+  // the icons or clips the video, whatever their content.
+  function measure() {
+    const spH = spotify.offsetHeight;
+    const ytH = card.offsetHeight;
+    if (spH) container.style.setProperty('--sp-h', spH + 'px');
+    if (ytH) container.style.setProperty('--yt-h', ytH + 'px');
   }
 
-  function addLine(html, cls) {
-    const el = document.createElement('div');
-    el.className = 'term-line' + (cls ? ' ' + cls : '');
-    el.innerHTML = html;
-    output.appendChild(el);
+  measure();
+  (document.fonts?.ready ?? Promise.resolve()).then(() =>
+    requestAnimationFrame(measure)
+  );
+  window.addEventListener('load', () => requestAnimationFrame(measure));
+  window.addEventListener('resize', measure);
+
+  function show() {
+    clearTimeout(hideTimer);
+    if (frame.getAttribute('src') !== SRC) frame.setAttribute('src', SRC);
+    container.classList.add('show-yt');
+    // Pause background music so the two don't play over each other.
+    document.getElementById('bg-music')?.pause();
   }
 
-  function gap() {
-    const el = document.createElement('div');
-    el.className = 'term-line--gap';
-    output.appendChild(el);
-  }
-
-  function scrollBottom() {
-    body_.scrollTop = body_.scrollHeight;
-  }
-
-  /* ── boot message ── */
-  function boot() {
-    addLine('<span class="t-hi">Xify</span> <span class="t-dim">terminal v1.0.0</span>');
-    addLine('<span class="t-dim">type <span class="t-cmd">help</span> for available commands.</span>');
-    gap();
-    booted = true;
-    scrollBottom();
-  }
-
-  /* ── commands ── */
-  const COMMANDS = {
-    help() {
-      addLine('<span class="t-dim">commands:</span>');
-      addLine('  <span class="t-cmd">steam</span>    <span class="t-dim">—</span> open steam profile');
-      addLine('  <span class="t-cmd">discord</span>  <span class="t-dim">—</span> copy discord username');
-      addLine('  <span class="t-cmd">setup</span>    <span class="t-dim">—</span> show setup specs');
-      addLine('  <span class="t-cmd">clear</span>    <span class="t-dim">—</span> clear terminal');
-      addLine('  <span class="t-cmd">help</span>     <span class="t-dim">—</span> show this message');
-    },
-    steam() {
-      window.open('https://steamcommunity.com/id/bot7k/', '_blank', 'noopener,noreferrer');
-      addLine('<span class="t-ok">↗</span> opening steam profile…');
-    },
-    discord() {
-      navigator.clipboard?.writeText('dejmilion').catch(() => {});
-      addLine('<span class="t-dim">username:</span> <span class="t-hi">dejmilion</span>');
-      addLine('<span class="t-ok">✓</span> <span class="t-dim">copied to clipboard</span>');
-    },
-    setup() {
-      addLine('<span class="t-dim">peripherals:</span>');
-      addLine('  <span class="t-cmd">mouse</span>     <span class="t-hi">Wlmouse Beast X Mini</span>');
-      addLine('  <span class="t-cmd">keyboard</span>  <span class="t-hi">Mchose Jet 75</span>');
-      gap();
-      addLine('<span class="t-dim">pc:</span>');
-      addLine('  <span class="t-cmd">cpu</span>       <span class="t-hi">AMD Ryzen 5 4500</span>');
-      addLine('  <span class="t-cmd">gpu</span>       <span class="t-hi">NVIDIA RTX 3060 Ti</span>');
-      addLine('  <span class="t-cmd">ram</span>       <span class="t-hi">16GB</span>');
-    },
-    clear() {
-      output.innerHTML = '';
-    },
-  };
-
-  function runCmd(raw) {
-    const cmd = raw.trim().toLowerCase();
-    if (!cmd) return;
-
-    history.unshift(cmd);
-    histIdx = -1;
-
-    /* echo the typed command */
-    addLine('<span class="t-prompt">~/xify $</span>&nbsp;' + esc(cmd), 'term-line--echo');
-
-    if (COMMANDS[cmd]) {
-      COMMANDS[cmd]();
-    } else {
-      addLine('<span class="t-err">command not found:</span> ' + esc(cmd));
-      addLine('<span class="t-dim">try <span class="t-cmd">help</span></span>');
-    }
-    gap();
-    scrollBottom();
-  }
-
-  /* ── open / close ── */
-  function openTerm() {
-    isOpen = true;
-    win.classList.add('term-window--open');
-    toggleBtn.classList.add('term-toggle--active');
-    win.setAttribute('aria-hidden', 'false');
-    if (!booted) boot();
-    setTimeout(() => input.focus(), 40);
-  }
-
-  function closeTerm() {
-    isOpen = false;
-    win.classList.remove('term-window--open');
-    toggleBtn.classList.remove('term-toggle--active');
-    win.setAttribute('aria-hidden', 'true');
-  }
-
-  toggleBtn.addEventListener('click', () => isOpen ? closeTerm() : openTerm());
-  closeBtn.addEventListener('click', closeTerm);
-
-  /* ── drag ── */
-  const header = win.querySelector('.term-header');
-  let dragging = false, dragOffX = 0, dragOffY = 0;
-
-  header.addEventListener('mousedown', e => {
-    if (e.target === closeBtn || e.target.closest('.term-dots')) return;
-    dragging = true;
-    const r = win.getBoundingClientRect();
-    dragOffX = e.clientX - r.left;
-    dragOffY = e.clientY - r.top;
-    win.style.transition = 'none';
-    e.preventDefault();
-  });
-
-  document.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    let x = e.clientX - dragOffX;
-    let y = e.clientY - dragOffY;
-    const r = win.getBoundingClientRect();
-    x = Math.max(0, Math.min(x, window.innerWidth  - r.width));
-    y = Math.max(0, Math.min(y, window.innerHeight - r.height));
-    win.style.left   = x + 'px';
-    win.style.top    = y + 'px';
-    win.style.right  = 'auto';
-    win.style.bottom = 'auto';
-  });
-
-  document.addEventListener('mouseup', () => { dragging = false; });
-
-  /* ── resize ── */
-  let resizing = false, resizeDir = '', resizeStart = {};
-
-  win.querySelectorAll('.term-resize').forEach(handle => {
-    handle.addEventListener('mousedown', e => {
-      e.stopPropagation();
-      resizing = true;
-      resizeDir = handle.dataset.dir;
-      const r = win.getBoundingClientRect();
-      resizeStart = { x: e.clientX, y: e.clientY, left: r.left, top: r.top, width: r.width, height: r.height };
-      win.style.transition = 'none';
-      e.preventDefault();
-    });
-  });
-
-  document.addEventListener('mousemove', e => {
-    if (!resizing) return;
-    const dx = e.clientX - resizeStart.x;
-    const dy = e.clientY - resizeStart.y;
-    const MIN_W = 260, MIN_H = 160;
-    let { left, top, width, height } = resizeStart;
-
-    if (resizeDir.includes('e'))  width  = Math.max(MIN_W, width + dx);
-    if (resizeDir.includes('s'))  height = Math.max(MIN_H, height + dy);
-    if (resizeDir.includes('w')) { width  = Math.max(MIN_W, width - dx); if (width > MIN_W) left += dx; }
-    if (resizeDir.includes('n')) { height = Math.max(MIN_H, height - dy); if (height > MIN_H) top += dy; }
-
-    win.style.width  = width  + 'px';
-    win.style.height = height + 'px';
-    win.style.left   = left   + 'px';
-    win.style.top    = top    + 'px';
-    win.style.right  = 'auto';
-    win.style.bottom = 'auto';
-  });
-
-  document.addEventListener('mouseup', () => { resizing = false; });
-
-  /* Click anywhere in the terminal body to refocus input */
-  body_.addEventListener('click', () => input.focus());
-
-  /* ── keyboard ── */
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      const val = input.value;
-      input.value = '';
-      runCmd(val);
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (histIdx < history.length - 1) {
-        histIdx++;
-        input.value = history[histIdx];
+  function hide() {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      container.classList.remove('show-yt');
+      frame.setAttribute('src', '');   // stop playback when hidden
+      // Resume background music if it had been started and the visitor
+      // didn't manually pause it.
+      const music = document.getElementById('bg-music');
+      if (music && music.dataset.enabled === 'true' && music.dataset.userPaused !== 'true') {
+        music.play().catch(() => {});
       }
+    }, 300);
+  }
+
+  link.addEventListener('mouseenter', show);
+  link.addEventListener('mouseleave', hide);
+  card.addEventListener('mouseenter', show);
+  card.addEventListener('mouseleave', hide);
+})();
+
+// ═══ CLICK-TO-ENTER ═══
+// The visitor's click is a real user gesture, so the browser lets the
+// music start with sound. It also reveals the page and fires the intro.
+(() => {
+  const screen = document.getElementById('enter-screen');
+  const body   = document.body;
+  if (!screen) return;
+
+  // Hold `from` volume for holdMs, then fade to `to` over fadeMs.
+  function rampVolume(audio, from, to, holdMs, fadeMs) {
+    audio.volume = from;
+    const startFade = performance.now() + holdMs;
+    function step(now) {
+      if (now < startFade) { requestAnimationFrame(step); return; }
+      const t = Math.min(1, (now - startFade) / fadeMs);
+      audio.volume = from + (to - from) * t;
+      if (t < 1) requestAnimationFrame(step);
     }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (histIdx > 0) { histIdx--; input.value = history[histIdx]; }
-      else             { histIdx = -1; input.value = ''; }
+    requestAnimationFrame(step);
+  }
+
+  let entered = false;
+  function enter() {
+    if (entered) return;
+    entered = true;
+
+    // Start background music with sound: play at 0.15 for ~4s, then
+    // fade down to a quiet 0.07.
+    const music = document.getElementById('bg-music');
+    if (music) {
+      music.volume = 0.5;
+      music.play().then(() => {
+        music.dataset.enabled = 'true';
+        rampVolume(music, 0.5, 0.05, 1500, 1000);
+      }).catch(() => {});
     }
+
+    // Reveal the page and trigger the Xify intro animation after a
+    // short 0.5s pause following the click.
+    setTimeout(() => {
+      body.classList.remove('pre-enter');
+      document.dispatchEvent(new Event('xify:enter'));
+    }, 500);
+  }
+
+  // Clicking anywhere on the overlay (including the button) enters.
+  screen.addEventListener('click', enter);
+})();
+
+// ═══ SPOTIFY CARD PLAY / PAUSE (controls the background song) ═══
+(() => {
+  const btn   = document.getElementById('sp-toggle');
+  const music = document.getElementById('bg-music');
+  if (!btn || !music) return;
+
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+  const ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+
+  function render() {
+    const playing = !music.paused;
+    btn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  }
+
+  btn.addEventListener('click', () => {
+    if (music.paused) {
+      music.dataset.userPaused = '';
+      music.play().catch(() => {});
+    } else {
+      music.dataset.userPaused = 'true';
+      music.pause();
+    }
+    render();
   });
+
+  // Keep the icon in sync if the song is paused/resumed elsewhere.
+  music.addEventListener('play',  render);
+  music.addEventListener('pause', render);
+  render();
 })();
